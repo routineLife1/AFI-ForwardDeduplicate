@@ -5,7 +5,7 @@ from tqdm import tqdm
 import warnings
 import _thread
 from queue import Queue
-from models.model_pg104.RIFE import Model
+from models.model_union_2.RIFE import Model
 
 warnings.filterwarnings("ignore")
 torch.set_grad_enabled(False)
@@ -28,7 +28,7 @@ if torch.cuda.is_available():
 model = Model()
 if not hasattr(model, 'version'):
     model.version = 0
-model.load_model('train_logs/old/train_log_pg104', -1)
+model.load_model('train_logs/v', -1)
 print("Loaded model")
 model.eval()
 model.device()
