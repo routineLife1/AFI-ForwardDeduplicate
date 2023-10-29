@@ -12,7 +12,7 @@ torch.set_grad_enabled(False)
 
 
 n_forward = 2  # 用户可以指定, N - 1, 表示解决一拍N问题, 最小为1 (程序执行结束后会吃掉开头的N帧)
-times = 5  # 补帧倍数 fps_in -> downfps = fps_in / n_forward -> (downfps * times)
+times = 5  # 补帧倍数 (fps_in * times)
 
 
 video = r''  # 输入视频
