@@ -137,8 +137,8 @@ while True:
     queue_output.append(output0)
     inp0, inp1 = map(to_tensor, [output0, output1])
     reuse_things = model.reuse(inp0, inp1, scale)
-    for t in [(1 / (times - 1)) * i for i in range(1, times)]:
-        out = to_numpy(model.inference(inp0, inp1, reuse_things, t, scale))
+    for i in range(1, times):
+        out = to_numpy(model.inference(inp0, inp1, reuse_things, i / times, scale))
         queue_output.append(out)
 
     for out in queue_output:
