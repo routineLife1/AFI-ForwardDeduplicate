@@ -118,12 +118,11 @@ output0 = None
 
 while True:
     if output0 is None:
-        for i in range(n_forward):
-            queue_input.append(get())
+        queue_input.extend(get() for _ in range(n_forward))
         # output0, saved_result, count = decrase_inference(queue_input.copy(), saved_result)  # 字典为可变序列, 不需要返回
         # 列表queue_input为可变序列, 使用copy避免改变
         output0, count = decrase_inference(queue_input.copy(), saved_result)
-        # print(f"首次计算推理次数: {count}")
+            # print(f"首次计算推理次数: {count}")
 
     _ = queue_input.pop(0)
     queue_input.append(get())
