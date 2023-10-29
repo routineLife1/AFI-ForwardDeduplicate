@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore")
 torch.set_grad_enabled(False)
 
 
-n_forward = 2  # 用户可以指定, N - 1, 表示解决一拍N问题, 最小为1 (程序执行结束后会吃掉开头的N帧)
+n_forward = 2  # 用户可以指定, 填N - 1表示解决一拍N问题, 最小为1 (程序执行结束后会吃掉开头的N帧)
 times = 5  # 补帧倍数 (fps_in * times)
 
 
@@ -150,5 +150,5 @@ while True:
     output0 = output1
     pbar.update(1)
 
-put(output0.squeeze(0).permute(1, 2, 0).cpu().numpy() * 255.)
+put(output0)
 pbar.update(1)
