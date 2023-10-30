@@ -11,7 +11,7 @@ from IFNet_HDv3 import IFNet
 warnings.filterwarnings("ignore")
 torch.set_grad_enabled(False)
 
-n_forward = 2  # 用户可以指定, N - 1, 表示解决一拍N及以下问题, 最小为1 (程序执行结束后会吃掉开头的N帧)
+n_forward = 2  # 解决一拍N及以下问题, 则输入值N-1, 最小为1 (程序执行结束后会吃掉开头的N帧)
 times = 5  # 补帧倍数
 preserve_startup_frame = True  # 保留开头推理过程中被抛弃的N帧, 这可能会在场景开头引入略微卡顿
 
