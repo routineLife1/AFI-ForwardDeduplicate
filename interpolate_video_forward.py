@@ -5,33 +5,49 @@ from tqdm import tqdm
 import warnings
 import _thread
 from queue import Queue
-from models.model_union_2.RIFE import Model
+from models.model_pg104.RIFE import Model
+from IFNet_HDv3 import IFNet
 
 warnings.filterwarnings("ignore")
 torch.set_grad_enabled(False)
 
-
-n_forward = 2  # 用户可以指定, 填N - 1表示解决一拍N问题, 最小为1 (程序执行结束后会吃掉开头的N帧)
-times = 5  # 补帧倍数 (fps_in * times)
-
+n_forward = 2  # 用户可以指定, N - 1, 表示解决一拍N问题, 最小为1 (程序执行结束后会吃掉开头的N帧)
+times = 5  # 补帧倍数
 
 video = r''  # 输入视频
 save = r''  # 保存输出图片序列的路径
 scale = 1.0  # 光流缩放尺度
-global_size = (1920, 1088)  # 全局图像尺寸(自行pad)
+global_size = (960, 576)  # 全局图像尺寸(自行pad)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_grad_enabled(False)
 if torch.cuda.is_available():
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
-model = Model()
-if not hasattr(model, 'version'):
-    model.version = 0
-model.load_model('train_logs/v', -1)
-print("Loaded model")
+
+
+def convert(param):
+    return {
+        k.replace("module.", ""): v
+        for k, v in param.items()
+        if "module." in k
+    }
+
+
+model_type = 'rife'  # gmfss / rife
+
+if model_type == 'rife':
+    model = IFNet()
+    model.load_state_dict(convert(torch.load('rife48.pkl')))
+else:
+    model = Model()
+    model.load_model('train_logs/old/train_log_pg104', -1)
 model.eval()
-model.device()
+if model_type == 'gmfss':
+    model.device()
+else:
+    model.to(device).half()
+print("Loaded model")
 
 
 def to_tensor(img):
@@ -82,6 +98,12 @@ _thread.start_new_thread(clear_write_buffer, (write_buffer,))
 pbar = tqdm(total=total_frames_count - n_forward)
 
 
+def make_inf(x, y, scale, timestep):
+    if model_type == 'rife':
+        return model(torch.cat((x, y), dim=1), timestep)
+    return model.inference(x, y, model.reuse(x, y, scale), timestep)
+
+
 def decrase_inference(inputs: list, saved_result: dict, layers=0, counter=0):
     layers += 1
     if len(inputs) == 1:
@@ -91,7 +113,7 @@ def decrase_inference(inputs: list, saved_result: dict, layers=0, counter=0):
     for i in range(len(inputs) - 1):
         # 先读表, 不重复生成结果 (超大幅度加速计算)
         if saved_result.get(f'{layers}{i + 1}') is not None:
-            saved_result[f'{layers}{i}'] = saved_result[f'{layers}{i + 1}']   # 向前移动整个倒三角 (可以忽略这行注释)
+            saved_result[f'{layers}{i}'] = saved_result[f'{layers}{i + 1}']  # 向前移动整个倒三角 (可以忽略这行注释), 这样存储会增加空间复杂度, 建议简化
             tmp_queue.append(
                 saved_result[f'{layers}{i}']
             )
@@ -99,9 +121,9 @@ def decrase_inference(inputs: list, saved_result: dict, layers=0, counter=0):
             # 反复执行to_tensor -> to_numpy可以节省显存, 但可能会显著降低执行速度
             inp0, inp1 = map(to_tensor, [inputs[i], inputs[i + 1]])
             tmp_queue.append(
-                to_numpy(model.inference(inp0, inp1, model.reuse(inp0, inp1, scale), 0.5, scale))
+                to_numpy(make_inf(inp0, inp1, scale, 0.5))
             )
-            saved_result[f'{layers}{i}'] = tmp_queue[-1]   # 补充倒三角 (可以忽略这行注释)
+            saved_result[f'{layers}{i}'] = tmp_queue[-1]  # 补充倒三角 (可以忽略这行注释), 这样存储会增加空间复杂度, 建议简化
             counter += 1
     return decrase_inference(tmp_queue, saved_result, layers, counter)
 
@@ -122,7 +144,7 @@ while True:
         # output0, saved_result, count = decrase_inference(queue_input.copy(), saved_result)  # 字典为可变序列, 不需要返回
         # 列表queue_input为可变序列, 使用copy避免改变
         output0, count = decrase_inference(queue_input.copy(), saved_result)
-            # print(f"首次计算推理次数: {count}")
+        # print(f"首次计算推理次数: {count}")
 
     _ = queue_input.pop(0)
     queue_input.append(get())
@@ -136,9 +158,13 @@ while True:
 
     queue_output.append(output0)
     inp0, inp1 = map(to_tensor, [output0, output1])
-    reuse_things = model.reuse(inp0, inp1, scale)
+    reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
     for i in range(1, times):
-        out = to_numpy(model.inference(inp0, inp1, reuse_things, i / times, scale))
+        if model_type == 'rife':
+            out = make_inf(inp0, inp1, scale, i / times)
+        else:
+            out = model.inference(inp0, inp1, reuse_things, i / times, scale)
+        out = to_numpy(out)
         queue_output.append(out)
 
     for out in queue_output:
