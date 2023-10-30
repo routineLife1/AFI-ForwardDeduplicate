@@ -13,6 +13,7 @@ torch.set_grad_enabled(False)
 
 n_forward = 2  # 用户可以指定, N - 1, 表示解决一拍N问题, 最小为1 (程序执行结束后会吃掉开头的N帧)
 times = 5  # 补帧倍数
+preserve_startup_frame = True  # 保留开头推理过程中被抛弃的N帧, 这可能会在场景开头引入略微卡顿
 
 video = r''  # 输入视频
 save = r''  # 保存输出图片序列的路径
@@ -145,6 +146,24 @@ while True:
         # 列表queue_input为可变序列, 使用copy避免改变
         output0, count = decrase_inference(queue_input.copy(), saved_result)
         # print(f"首次计算推理次数: {count}")
+
+        # 保留开头推理过程中被抛弃的N帧, 这可能会在场景开头引入略微卡顿
+        if preserve_startup_frame:
+            queue_output.append(i0)  # 开头帧
+            inp0 = to_tensor(i0)
+            for layer in range(1, n_forward + 1):
+                inp1 = saved_result[f'{layer}0']
+                inp1 = to_tensor(inp1)
+                reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
+                for i in range(1, times):
+                    if model_type == 'rife':
+                        out = make_inf(inp0, inp1, scale, i / times)
+                    else:
+                        out = model.inference(inp0, inp1, reuse_things, i / times, scale)
+                    queue_output.append(to_numpy(out))
+                if layer != n_forward:
+                    queue_output.append(to_numpy(inp1))
+                inp0 = inp1
 
     _ = queue_input.pop(0)
     queue_input.append(get())
