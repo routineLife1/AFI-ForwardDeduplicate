@@ -6,4 +6,4 @@ Efficient Deduplicate for Anime Video Frame Interplation
 # The usage and demo result will be updated in the next few days
 
 ## Reference
-[SpatiotemporalResampling](https://github.com/hyw-dev/SpatiotemporalResampling)
+[SpatiotemporalResampling](https://github.com/hyw-dev/SpatiotemporalResampling) [GMFSS](https://github.com/98mxr/GMFSS_Fortuna) [Practical-RIFE](https://github.com/hzwer/Practical-RIFE)
