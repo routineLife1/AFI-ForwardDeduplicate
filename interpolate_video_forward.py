@@ -11,14 +11,13 @@ from IFNet_HDv3 import IFNet
 
 warnings.filterwarnings("ignore")
 torch.set_grad_enabled(False)
+warnings.warn("使用该方法会导致输出总帧数略微大于原视频帧数与倍数的乘积, 请谨慎使用")
 
 n_forward = 2  # 解决一拍N及以下问题, 则输入值N-1, 最小为1 (程序执行结束后会吃掉开头的N帧)
 times = 5  # 补帧倍数
-preserve_startup_frame = True  # 保留开头推理过程中被抛弃的N帧, 避免音频延迟, 但这可能会在场景开头引入略微卡顿
-preserve_end_frame = True  # 保留结尾推理过程中被抛弃的N帧, 避免音频延迟, 但这可能会在场景结尾引入略微卡顿
 
-video = r''  # 输入视频
-save = r''  # 保存输出图片序列的路径
+video = r'E:\Video\save_04\チカっとチカ千花.flv'  # 输入视频
+save = r'E:\Work\VFI\Algorithm\GMFwSS\output'  # 保存输出图片序列的路径
 scale = 1.0  # 光流缩放尺度
 global_size = (960, 576)  # 全局图像尺寸(自行pad)
 
@@ -37,7 +36,7 @@ def convert(param):
     }
 
 
-model_type = 'rife'  # gmfss / rife
+model_type = 'gmfss'  # gmfss / rife
 
 if model_type == 'rife':
     model = IFNet()
@@ -108,33 +107,34 @@ def make_inf(x, y, scale, timestep):
 
 
 def decrase_inference(inputs: list, saved_result: dict, layers=0, counter=0):
-    layers += 1
-    if len(inputs) == 1:
-        # return inputs[0], saved_result, counter  # 字典为可变序列, 不需要返回
-        return inputs[0], counter
-    tmp_queue = []
-    for i in range(len(inputs) - 1):
-        # 先读表, 不重复生成结果 (超大幅度加速计算)
-        if saved_result.get(f'{layers}{i + 1}') is not None:
-            saved_result[f'{layers}{i}'] = saved_result[f'{layers}{i + 1}']  # 向前移动整个倒三角 (可以忽略这行注释), 这样存储会增加空间复杂度, 建议简化
-            tmp_queue.append(
-                saved_result[f'{layers}{i}']
-            )
-        else:
-            # 反复执行to_tensor -> to_numpy可以节省显存, 但可能会显著降低执行速度
-            inp0, inp1 = map(to_tensor, [inputs[i], inputs[i + 1]])
-            tmp_queue.append(
-                to_numpy(make_inf(inp0, inp1, scale, 0.5))
-            )
-            saved_result[f'{layers}{i}'] = tmp_queue[-1]  # 补充倒三角 (可以忽略这行注释), 这样存储会增加空间复杂度, 建议简化
-            counter += 1
-    return decrase_inference(tmp_queue, saved_result, layers, counter)
+    while len(inputs) != 1:
+        layers += 1
+        tmp_queue = []
+        for i in range(len(inputs) - 1):
+            # 先读表, 不重复生成结果 (超大幅度加速计算)
+            if saved_result.get(f'{layers}{i + 1}') is not None:
+                saved_result[f'{layers}{i}'] = saved_result[
+                    f'{layers}{i + 1}']  # 向前移动整个倒三角 (可以忽略这行注释), 这样存储会增加空间复杂度, 建议简化
+                tmp_queue.append(
+                    saved_result[f'{layers}{i}']
+                )
+            else:
+                # 反复执行to_tensor -> to_numpy可以节省显存, 但可能会显著降低执行速度
+                inp0, inp1 = map(to_tensor, [inputs[i], inputs[i + 1]])
+                tmp_queue.append(
+                    to_numpy(make_inf(inp0, inp1, scale, 0.5))
+                )
+                saved_result[f'{layers}{i}'] = tmp_queue[-1]  # 补充倒三角 (可以忽略这行注释), 这样存储会增加空间复杂度, 建议简化
+                counter += 1
+        inputs = tmp_queue
+    # return inputs[0], saved_result, counter  # 字典为可变序列, 不需要返回
+    return inputs[0], counter
 
 
 pbar.update(n_forward)  # 初始化进度
 
 # 初始化输入序列
-i0 = get()
+i0 = get()  # 0
 queue_input = [i0]
 queue_output = []
 saved_result = {}
@@ -142,40 +142,68 @@ output0 = None
 
 while True:
     if output0 is None:
-        queue_input.extend(get() for _ in range(n_forward))
+        queue_input.extend(get() for _ in range(n_forward))  # 1, 2 (n_forward=2)
         # output0, saved_result, count = decrase_inference(queue_input.copy(), saved_result)  # 字典为可变序列, 不需要返回
         # 列表queue_input为可变序列, 使用copy避免改变
-        output0, count = decrase_inference(queue_input.copy(), saved_result)
+
+        output0, count = decrase_inference(queue_input.copy(), saved_result)  # 使用 0,1,2
         # print(f"首次计算推理次数: {count}")
 
-        # 保留开头推理过程中被抛弃的N帧, 避免音频延迟, 但这可能会在场景开头引入略微卡顿
-        if preserve_startup_frame:
-            queue_output.append(i0)  # 开头帧
-            inp0 = to_tensor(i0)
-            for layer in range(1, n_forward + 1):
-                inp1 = saved_result[f'{layer}0']  # 选择每层最左侧的帧
-                inp1 = to_tensor(inp1)
-                reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
-                for i in range(1, times):
-                    if model_type == 'rife':
-                        out = make_inf(inp0, inp1, scale, i / times)
-                    else:
-                        out = model.inference(inp0, inp1, reuse_things, i / times, scale)
-                    queue_output.append(to_numpy(out))
-                # 最后一层仅存在一帧, 该帧已经在下文中的output0处被储存进queue_output
-                if layer != n_forward:
-                    queue_output.append(to_numpy(inp1))
-                inp0 = inp1
+        queue_output.append(i0)  # 开头帧
+        inp0 = to_tensor(i0)
+        for layer in range(1, n_forward + 1):
+            inp1 = saved_result[f'{layer}0']  # 选择每层最左侧的帧
+            inp1 = to_tensor(inp1)
+            reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
+            for i in range(1, times):
+                if model_type == 'rife':
+                    out = make_inf(inp0, inp1, scale, i / times)
+                else:
+                    out = model.inference(inp0, inp1, reuse_things, i / times, scale)
+                queue_output.append(to_numpy(out))
+            # 最后一层仅存在一帧, 该帧已经在下文中的output0处被储存进queue_output
+            if layer != n_forward:
+                queue_output.append(to_numpy(inp1))
+            inp0 = inp1
 
     # 向前推进
     _ = queue_input.pop(0)
-    queue_input.append(get())
+    queue_input.append(get())  # 1, 2, 3
     if queue_input[-1] is None:
+        queue_output = [output0]
+
+        inp0 = to_tensor(output0)
+        for layer in range(n_forward - 1, 0, -1):
+            inp1 = saved_result[f'{layer}{n_forward - layer}']  # 每层读最右侧的帧
+            inp1 = to_tensor(inp1)
+            reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
+            for i in range(1, times):
+                if model_type == 'rife':
+                    out = make_inf(inp0, inp1, scale, i / times)
+                else:
+                    out = model.inference(inp0, inp1, reuse_things, i / times, scale)
+                queue_output.append(to_numpy(out))
+            queue_output.append(to_numpy(inp1))
+            inp0 = inp1
+
+        inp1 = to_tensor(queue_input[-2])  # -1位置上是None, 最后一帧的下标是-2
+        reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
+        for i in range(1, times):
+            if model_type == 'rife':
+                out = make_inf(inp0, inp1, scale, i / times)
+            else:
+                out = model.inference(inp0, inp1, reuse_things, i / times, scale)
+            queue_output.append(to_numpy(out))
+        queue_output.append(to_numpy(inp1))  # 等效于queue_output.append(queue_input[-2])
+
+        for out in queue_output:
+            put(out)
+
         break
 
     # output1, saved_result, count = decrase_inference(queue_input.copy(), saved_result)   # 字典为可变序列, 不需要返回
     # 列表queue_input为可变序列, 使用copy避免改变
-    output1, count = decrase_inference(queue_input.copy(), saved_result)
+    output1, count = decrase_inference(queue_input.copy(), saved_result)  # 输入 1,2,3
     # print(f"前进计算推理次数: {count}")
 
     queue_output.append(output0)
@@ -198,37 +226,6 @@ while True:
     output0 = output1
     pbar.update(1)
 
-put(output0)
-
-# 保留结尾推理过程中被抛弃的N帧, 避免音频延迟, 但这可能会在场景结尾引入略微卡顿
-if preserve_end_frame:
-    inp0 = to_tensor(output0)
-    for layer in range(n_forward - 1, 0, -1):
-        inp1 = saved_result[f'{layer}{n_forward - layer}']  # 每层读最右侧的帧
-        inp1 = to_tensor(inp1)
-        reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
-        for i in range(1, times):
-            if model_type == 'rife':
-                out = make_inf(inp0, inp1, scale, i / times)
-            else:
-                out = model.inference(inp0, inp1, reuse_things, i / times, scale)
-            queue_output.append(to_numpy(out))
-        queue_output.append(to_numpy(inp1))
-        inp0 = inp1
-
-    inp1 = to_tensor(queue_input[-2])  # -1位置上是None, 最后一帧的下标是-2
-    reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
-    for i in range(1, times):
-        if model_type == 'rife':
-            out = make_inf(inp0, inp1, scale, i / times)
-        else:
-            out = model.inference(inp0, inp1, reuse_things, i / times, scale)
-        queue_output.append(to_numpy(out))
-    queue_output.append(to_numpy(inp1))  # 等效于queue_output.append(queue_input[-2])
-
-    for out in queue_output:
-        put(out)
-
 # 等待帧全部导出完成
 print('Wait for all frames to be exported...')
 while not write_buffer.empty():
@@ -236,6 +233,3 @@ while not write_buffer.empty():
 
 pbar.update(1)
 print('Done!')
-
-# 验证帧位是否匹配: 程序结束后得到的视频总帧数 = 输入视频总帧数(total_frames_count) * 补帧倍数(times)
-# 本代码实际运行结果得到的帧数大于标准值，很可能结尾多出了几帧，但不会造成音画不同步的问题。如果要实现转场识别功能请留意这一块。
