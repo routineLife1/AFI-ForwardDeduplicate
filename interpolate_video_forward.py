@@ -5,29 +5,42 @@ from tqdm import tqdm
 import warnings
 import _thread
 import time
+import numpy as np
 from queue import Queue
 from models.model_pg104.RIFE import Model
 from IFNet_HDv3 import IFNet
+from Utils_scdet.scdet import SvfiTransitionDetection
 
 warnings.warn(
-    "正常情况下补帧操作无法得到frames * times帧, 正常应该得到times * (frames - 1) + 1帧, 请在程序结束后检查总帧数")
+    "一般情况下最后得到的总帧数为frames * times帧左右, 请在程序结束后检查总帧数")
 warnings.filterwarnings("ignore")
 torch.set_grad_enabled(False)
 
 model_type = 'gmfss'  # gmfss / rife
-n_forward = 2  # 解决一拍N及以下问题, 则输入值N-1, 最小为1
+n_forward = 2  # 解决一拍N及以下问题, 则输入值N-1, 最小为1 (程序执行结束后会吃掉开头的N帧)
 times = 5  # 补帧倍数 >= 2
+disable_scdet = True  # 禁用转场识别
+scdet_threshold = 14  # 转场识别阈值
 
-video = r'E:\Work\VFI\Algorithm\GMFwSS\test_recon\material\1.mp4'  # 输入视频
-save = r'E:\Work\VFI\Algorithm\GMFwSS\output'  # 保存输出图片序列的路径
+video = r''  # 输入视频
+save = r''  # 保存输出图片序列的路径
 scale = 1.0  # 光流缩放尺度
 global_size = (960, 576)  # 全局图像尺寸(自行pad)
+export_size = (960, 540)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_grad_enabled(False)
 if torch.cuda.is_available():
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
+
+scene_detection = SvfiTransitionDetection(save, 4,
+                                          scdet_threshold=scdet_threshold,
+                                          pure_scene_threshold=10,
+                                          no_scdet=disable_scdet,
+                                          use_fixed_scdet=False,
+                                          fixed_max_scdet=50,
+                                          scdet_output=False)
 
 
 def convert(param):
@@ -66,6 +79,7 @@ output_counter = 0  # 输出计数器
 def put(things):  # 将输出帧推送至write_buffer
     global output_counter
     output_counter += 1
+    things = cv2.resize(things.astype(np.uint8), export_size)
     write_buffer.put([output_counter, things])
 
 
@@ -97,7 +111,7 @@ read_buffer = Queue(maxsize=100)
 write_buffer = Queue(maxsize=-1)
 _thread.start_new_thread(build_read_buffer, (read_buffer, video_capture))
 _thread.start_new_thread(clear_write_buffer, (write_buffer,))
-pbar = tqdm(total=total_frames_count - n_forward)
+pbar = tqdm(total=total_frames_count)
 
 
 def make_inf(x, y, scale, timestep):
@@ -106,7 +120,8 @@ def make_inf(x, y, scale, timestep):
     return model.inference(x, y, model.reuse(x, y, scale), timestep)
 
 
-def decrase_inference(inputs: list, saved_result: dict, layers=0, counter=0):
+# def decrase_inference(inputs: list, saved_result: dict, layers=0, counter=0):
+def decrase_inference(inputs: list, layers=0, counter=0):
     while len(inputs) != 1:
         layers += 1
         tmp_queue = []
@@ -144,8 +159,7 @@ def gen_ts_frame(x, y, _scale, ts):
 
 
 # 初始化输入序列
-i0 = get()  # 0
-queue_input = [i0]
+queue_input = [get()]
 queue_output = []
 saved_result = {}
 output0 = None
@@ -160,11 +174,11 @@ while True:
         # output0, saved_result, count = decrase_inference(queue_input.copy(), saved_result)  # 字典为可变序列, 不需要返回
         # 列表queue_input为可变序列, 使用copy避免改变
 
-        output0, count = decrase_inference(queue_input.copy(), saved_result)  # 使用 0,1,2
+        output0, count = decrase_inference(queue_input.copy())  # 使用 0,1,2
         # print(f"首次计算推理次数: {count}")
 
-        queue_output.append(i0)  # 开头帧, 规定必须放
-        inputs = [i0]
+        queue_output.append(queue_input[0])  # 开头帧, 规定必须放
+        inputs = [queue_input[0]]
         inputs.extend(saved_result[f'{layer}0'] for layer in range(1, n_forward + 1))
 
         timestamp = [0.5 * layer for layer in range(0, n_forward + 1)]  # np.linspace()
@@ -189,11 +203,17 @@ while True:
 
     # 向前推进
     _ = queue_input.pop(0)
-    queue_input.append(get())  # 1, 2, 3
+    queue_input.append(get())
 
-    # 读到帧尾
-    if queue_input[-1] is None:
-        queue_output = [output0]
+    # 读到帧尾或遇到转场
+    if (queue_input[-1] is None) or scene_detection.check_scene(queue_input[-2], queue_input[-1]):
+
+        # test
+        # if queue_input[-1] is not None:
+        #     print("find scene...")
+        # test
+
+        queue_output.append(output0)
         inputs = [output0]
         inputs.extend(saved_result[f'{layer}{n_forward - layer}'] for layer in range(n_forward - 1, 0, -1))
         inputs.append(queue_input[-2])
@@ -217,16 +237,30 @@ while True:
                 queue_output.extend(outputs)
             if len(require_timestamp) == 0:
                 break
+
         queue_output.append(queue_input[-2])
+
+        # 补充结尾帧
+        queue_output.extend([queue_input[-2]] * (times - 1))
 
         for out in queue_output:
             put(out)
 
-        break
+        # 确定是读到帧尾, 结束循环
+        if queue_input[-1] is None:
+            break
+
+        # 重新初始化, 进入下一个场景
+        queue_input = [queue_input[-1]]
+        queue_output = list()
+        saved_result = dict()
+        output0 = None
+        pbar.update(1)
+        continue
 
     # output1, saved_result, count = decrase_inference(queue_input.copy(), saved_result)   # 字典为可变序列, 不需要返回
     # 列表queue_input为可变序列, 使用copy避免改变
-    output1, count = decrase_inference(queue_input.copy(), saved_result)  # 输入 1,2,3
+    output1, count = decrase_inference(queue_input.copy())  # 输入 1,2,3
     # print(f"前进计算推理次数: {count}")
 
     queue_output.append(output0)
