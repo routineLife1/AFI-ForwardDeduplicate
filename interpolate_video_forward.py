@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore")
 torch.set_grad_enabled(False)
 
 model_type = 'gmfss'  # gmfss / rife
-n_forward = 2  # 解决一拍N及以下问题, 则输入值N-1, 最小为1 (程序执行结束后会吃掉开头的N帧)
+n_forward = 2  # 解决一拍N及以下问题, 则输入值N-1, 最小为1
 times = 5  # 补帧倍数 >= 2
 
 video = r'E:\Work\VFI\Algorithm\GMFwSS\test_recon\material\1.mp4'  # 输入视频
