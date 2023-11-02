@@ -9,14 +9,16 @@ from queue import Queue
 from models.model_pg104.RIFE import Model
 from IFNet_HDv3 import IFNet
 
+warnings.warn(
+    "正常情况下补帧操作无法得到frames * times帧, 正常应该得到times * (frames - 1) + 1帧, 请在程序结束后检查总帧数")
 warnings.filterwarnings("ignore")
 torch.set_grad_enabled(False)
-warnings.warn("使用该方法会导致输出总帧数略微大于原视频帧数与倍数的乘积, 请谨慎使用")
 
+model_type = 'gmfss'  # gmfss / rife
 n_forward = 2  # 解决一拍N及以下问题, 则输入值N-1, 最小为1 (程序执行结束后会吃掉开头的N帧)
-times = 5  # 补帧倍数
+times = 5  # 补帧倍数 >= 2
 
-video = r'E:\Video\save_04\チカっとチカ千花.flv'  # 输入视频
+video = r'E:\Work\VFI\Algorithm\GMFwSS\test_recon\material\1.mp4'  # 输入视频
 save = r'E:\Work\VFI\Algorithm\GMFwSS\output'  # 保存输出图片序列的路径
 scale = 1.0  # 光流缩放尺度
 global_size = (960, 576)  # 全局图像尺寸(自行pad)
@@ -35,8 +37,6 @@ def convert(param):
         if "module." in k
     }
 
-
-model_type = 'gmfss'  # gmfss / rife
 
 if model_type == 'rife':
     model = IFNet()
@@ -131,7 +131,17 @@ def decrase_inference(inputs: list, saved_result: dict, layers=0, counter=0):
     return inputs[0], counter
 
 
-pbar.update(n_forward)  # 初始化进度
+def gen_ts_frame(x, y, _scale, ts):
+    _outputs = list()
+    _reuse_things = model.reuse(x, y, _scale) if model_type == 'gmfss' else None
+    for t in ts:
+        if model_type == 'rife':
+            _out = make_inf(inp0, inp1, _scale, t)
+        else:
+            _out = model.inference(inp0, inp1, _reuse_things, t, _scale)
+        _outputs.append(to_numpy(_out))
+    return _outputs
+
 
 # 初始化输入序列
 i0 = get()  # 0
@@ -139,6 +149,10 @@ queue_input = [i0]
 queue_output = []
 saved_result = {}
 output0 = None
+# if times = 5, n_forward=2, right=4, left=4
+right_infill = (times * n_forward) // 2 - 1
+left_infill = right_infill + (times * n_forward) % 2
+times_ts = [i / times for i in range(1, times)]
 
 while True:
     if output0 is None:
@@ -149,52 +163,61 @@ while True:
         output0, count = decrase_inference(queue_input.copy(), saved_result)  # 使用 0,1,2
         # print(f"首次计算推理次数: {count}")
 
-        queue_output.append(i0)  # 开头帧
-        inp0 = to_tensor(i0)
-        for layer in range(1, n_forward + 1):
-            inp1 = saved_result[f'{layer}0']  # 选择每层最左侧的帧
-            inp1 = to_tensor(inp1)
-            reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
-            for i in range(1, times):
-                if model_type == 'rife':
-                    out = make_inf(inp0, inp1, scale, i / times)
-                else:
-                    out = model.inference(inp0, inp1, reuse_things, i / times, scale)
-                queue_output.append(to_numpy(out))
-            # 最后一层仅存在一帧, 该帧已经在下文中的output0处被储存进queue_output
-            if layer != n_forward:
-                queue_output.append(to_numpy(inp1))
-            inp0 = inp1
+        queue_output.append(i0)  # 开头帧, 规定必须放
+        inputs = [i0]
+        inputs.extend(saved_result[f'{layer}0'] for layer in range(1, n_forward + 1))
+
+        timestamp = [0.5 * layer for layer in range(0, n_forward + 1)]  # np.linspace()
+        t_step = timestamp[-1] / (left_infill + 1)
+        require_timestamp = [t_step * i for i in range(1, left_infill + 1)]  # np.linspace()
+
+        for i in range(len(timestamp) - 1):
+            t0, t1 = timestamp[i], timestamp[i + 1]
+            if t0 in require_timestamp:
+                queue_output.append(inputs[i])
+                require_timestamp.remove(t0)
+            if t1 in require_timestamp:
+                queue_output.append(inputs[i + 1])
+                require_timestamp.remove(t1)
+            condition_middle = [rt for rt in require_timestamp if t0 < rt < t1]
+            if len(condition_middle) != 0:
+                inp0, inp1 = map(to_tensor, [inputs[i], inputs[i + 1]])
+                outputs = gen_ts_frame(inp0, inp1, scale, [(t - t0) * 2 for t in condition_middle])
+                queue_output.extend(outputs)
+            if len(require_timestamp) == 0:
+                break
 
     # 向前推进
     _ = queue_input.pop(0)
     queue_input.append(get())  # 1, 2, 3
+
+    # 读到帧尾
     if queue_input[-1] is None:
         queue_output = [output0]
+        inputs = [output0]
+        inputs.extend(saved_result[f'{layer}{n_forward - layer}'] for layer in range(n_forward - 1, 0, -1))
+        inputs.append(queue_input[-2])
 
-        inp0 = to_tensor(output0)
-        for layer in range(n_forward - 1, 0, -1):
-            inp1 = saved_result[f'{layer}{n_forward - layer}']  # 每层读最右侧的帧
-            inp1 = to_tensor(inp1)
-            reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
-            for i in range(1, times):
-                if model_type == 'rife':
-                    out = make_inf(inp0, inp1, scale, i / times)
-                else:
-                    out = model.inference(inp0, inp1, reuse_things, i / times, scale)
-                queue_output.append(to_numpy(out))
-            queue_output.append(to_numpy(inp1))
-            inp0 = inp1
+        timestamp = [0.5 * layer for layer in range(0, n_forward + 1)]  # np.linspace()
+        t_step = timestamp[-1] / (right_infill + 1)
+        require_timestamp = [t_step * i for i in range(1, right_infill + 1)]  # np.linspace()
 
-        inp1 = to_tensor(queue_input[-2])  # -1位置上是None, 最后一帧的下标是-2
-        reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
-        for i in range(1, times):
-            if model_type == 'rife':
-                out = make_inf(inp0, inp1, scale, i / times)
-            else:
-                out = model.inference(inp0, inp1, reuse_things, i / times, scale)
-            queue_output.append(to_numpy(out))
-        queue_output.append(to_numpy(inp1))  # 等效于queue_output.append(queue_input[-2])
+        for i in range(len(timestamp) - 1):
+            t0, t1 = timestamp[i], timestamp[i + 1]
+            if t0 in require_timestamp:
+                queue_output.append(inputs[i])
+                require_timestamp.remove(t0)
+            if t1 in require_timestamp:
+                queue_output.append(inputs[i + 1])
+                require_timestamp.remove(t1)
+            condition_middle = [rt for rt in require_timestamp if t0 < rt < t1]
+            if len(condition_middle) != 0:
+                inp0, inp1 = map(to_tensor, [inputs[i], inputs[i + 1]])
+                outputs = gen_ts_frame(inp0, inp1, scale, [(t - t0) * 2 for t in condition_middle])
+                queue_output.extend(outputs)
+            if len(require_timestamp) == 0:
+                break
+        queue_output.append(queue_input[-2])
 
         for out in queue_output:
             put(out)
@@ -208,14 +231,7 @@ while True:
 
     queue_output.append(output0)
     inp0, inp1 = map(to_tensor, [output0, output1])
-    reuse_things = model.reuse(inp0, inp1, scale) if model_type == 'gmfss' else None
-    for i in range(1, times):
-        if model_type == 'rife':
-            out = make_inf(inp0, inp1, scale, i / times)
-        else:
-            out = model.inference(inp0, inp1, reuse_things, i / times, scale)
-        out = to_numpy(out)
-        queue_output.append(out)
+    queue_output.extend(gen_ts_frame(inp0, inp1, scale, times_ts))
 
     for out in queue_output:
         # 在queue_output中已经转换过输出
