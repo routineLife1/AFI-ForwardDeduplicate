@@ -9,8 +9,9 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 
 # The usage will be updated in the next few days
 
-# limitations:
-It is temporarily impossible to dynamically adjust the args: "n_forward" through animation rhythm.
+# limitations and expectations:
+> It is temporarily impossible to dynamically adjust the args: "n_forward" through animation rhythm.
+> If it can support dynamic adjustment, the effect will be further improved, and it will definitely surpass manual deduplication.
 
 ## Reference
 [SpatiotemporalResampling](https://github.com/hyw-dev/SpatiotemporalResampling) [GMFSS](https://github.com/98mxr/GMFSS_Fortuna) [Practical-RIFE](https://github.com/hzwer/Practical-RIFE)
