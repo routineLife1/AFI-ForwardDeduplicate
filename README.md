@@ -19,7 +19,7 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 > It is temporarily impossible to dynamically adjust the "n_forward" parameter through animation rhythm.
 > If it can be supported, the effect will be further improved, and it will definitely surpass manual deduplication.
 > The reason for not directly setting the maximum possible number of beats is because the "n_forward" parameter acts like the number of times the algorithm performs TTA (Test Time Augmentation) operations.
-> Performing too many TTA operations may lead to blurriness and lag. The exact cause of lag caused by excessive TTA operations is currently unknown.
+> Performing too many TTA operations may lead to blurriness.
 
 ## Reference
 [SpatiotemporalResampling](https://github.com/hyw-dev/SpatiotemporalResampling) [GMFSS](https://github.com/98mxr/GMFSS_Fortuna) [Practical-RIFE](https://github.com/hzwer/Practical-RIFE)
