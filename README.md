@@ -7,7 +7,13 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 ### [bilibili](https://www.bilibili.com/video/BV1py4y1A7qj)
 
 
-# The usage will be updated in the next few days
+# After completing the todo list, usage instructions will be released.
+
+# todo list
+- [ ] **Efficiency optimization**
+- [ ] **Attempt to implement arbitrary frame rates support**
+- [ ] **Attempt to accurately determine transition even in the input_queue**
+- [ ] **Reduce transition frames to one frame and allocate them to the end of the scene**
 
 # limitations and expectations:
 > It is temporarily impossible to dynamically adjust the args: "n_forward" through animation rhythm.
