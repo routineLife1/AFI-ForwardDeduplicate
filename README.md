@@ -12,10 +12,10 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 # todo list
 - [ ] **Efficiency optimization**
 - [ ] **Attempt to implement arbitrary frame rates support**
-- [ ] **Attempt to accurately determine transition even in the input_queue**
+- [ ] **Attempt to accurately determine transition even in the queue_input**
 - [ ] **Reduce transition frames to one frame and allocate them to the end of the scene**
 
-# limitations and expectations:
+# limitations and expectations
 > It is temporarily impossible to dynamically adjust the args: "n_forward" through animation rhythm.
 > If it can support dynamic adjustment, the effect will be further improved, and it will definitely surpass manual deduplication.
 
