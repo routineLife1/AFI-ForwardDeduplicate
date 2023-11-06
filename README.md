@@ -52,5 +52,8 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 > 2. the "n_forward" parameter acts like the number of times the algorithm performs TTA (Test Time Augmentation) operations.
 > Performing too many TTA operations may lead to blurriness.
 
+# Projects that use AFI-ForwardDeduplicate
+[SVFI(commercial software)](https://store.steampowered.com/app/1692080/SVFI/)
+
 ## Reference
 [SpatiotemporalResampling](https://github.com/hyw-dev/SpatiotemporalResampling) [GMFSS](https://github.com/98mxr/GMFSS_Fortuna) [Practical-RIFE](https://github.com/hzwer/Practical-RIFE)
