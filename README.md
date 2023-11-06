@@ -3,7 +3,7 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 
 ![ezgif com-video-to-gif](https://github.com/hyw-dev/AFI-ForwardDeduplicate/assets/68835291/6f03dfd8-99f4-48ad-871e-91cbd704c1e5)
 
-#  Demonstrations
+#  Demos Videos
 ### [bilibili](https://www.bilibili.com/video/BV1py4y1A7qj)
 
 # Dependencies
