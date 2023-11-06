@@ -39,7 +39,7 @@ Efficient Deduplicate for Anime Video Frame Interpolation
   ```
   
 
-# todo list
+## todo list
 - [ ] ~~**Efficiency optimization**~~ (No significant efficiency gains and increased risk of vram overflow.)
 - [ ] ~~**Attempt to implement arbitrary frame rates support**~~ (It is very inefficient to process all the frames in a scene at once, or to accurately calculate the total number of frames variety of videos.)
 - [ ] ~~**Attempt to accurately determine transition even in the queue_input**~~ (The implementation code is too complex, and it's effect is not obvious to improve)
