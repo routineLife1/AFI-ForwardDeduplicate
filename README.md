@@ -9,7 +9,7 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 # Dependencies
 - ffmpeg
 - same as [GMFSS](https://github.com/98mxr/GMFSS_Fortuna)
-- download the [weights]() and unzip it, put them to ./weights/
+- download the [weights](https://drive.google.com/file/d/157M4i1B9hjWs1K2AZVArSulkM9qV2sdH/view?usp=sharing) and unzip it, put them to ./weights/
 
 # Usage 
 - normalize the source video to 24000/1001 fps by following command using ffmpeg
