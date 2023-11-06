@@ -9,38 +9,35 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 # Dependencies
 - ffmpeg
 - same as [GMFSS](https://github.com/98mxr/GMFSS_Fortuna)
+- download the [weights]() and unzip it, put them to ./weights/
 
 # Usage 
 - normalize the source video to 24000/1001 fps by following command using ffmpeg
   ```bash
   ffmpeg -i INPUT -crf 16 -r 24000/1001 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy OUTPUT
   ```
-  
-  **example:**
-  
-  ```bash
-  ffmpeg -i E:/Myvideo/01_src.mkv -crf 16 -r 24000/1001 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy E:/Myvideo/01.mkv
-  ```
-- down the [weights]() unzip it and put them to ./weights/
+- open the video and check out it's max consistent deduplication counts, (3 -> on Three, 2 -> on Two)
 - run the follwing command to finish interpolation
+  (N_FORWARD = max_consistent_deduplication_counts - 1)
   ```bash
-  python interpolate_video_forward.py -in [VIDEO] -out [OUTPUTDIR] -nf 2 -t [TIMES] -m [MODEL_TYPE] -s [ENABLE_SCDET] -st 14 -stf True -scale [SCALE]
+  python interpolate_video_forward.py -i [VIDEO] -o [OUTPUTDIR] -nf [N_FORWARD] -t [TIMES] -m [MODEL_TYPE] -s [ENABLE_SCDET] -st 14 -stf True -scale [SCALE]
   ```
   
-  **example:**
-  ```bash
-  python interpolate_video_forward.py -in E:/MyVideo/01.mkv -out E:/frame_seq_output -nf 2 -t 2 -m gmfss -s True -st 14 -stf True -scale 1.0
-  ```
-- run the follwing command to merge the output frames with the audio of source video
+- run the follwing command or custom command to merge the output frames with the audio of source video
   ```bash
   ffmpeg -r [24000/1001 * TIMES] -i [OUTPUTDIR]/%09d.png -i [VIDEO] -map 0:v -map 1:a -crf 16 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy [FINAL_OUTPUT]
   ```
   
-  **example:**
+ **example(smooth a 23.976fps video with on three and interpolate it to 47.952fps):**
 
   ```bash
+  ffmpeg -i E:/Myvideo/01_src.mkv -crf 16 -r 24000/1001 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy E:/Myvideo/01.mkv
+
+  python interpolate_video_forward.py -i E:/MyVideo/01.mkv -o E:/frame_seq_output -nf 2 -t 2 -m gmfss -s True -st 14 -stf True -scale 1.0
+
   ffmpeg -r 47.952 -i E:/frame_seq_output/%09d.png -i E:/MyVideo/01.mkv -map 0:v -map 1:a -crf 16 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy E:/final_output/01.mkv
   ```
+  
 
 # todo list
 - [ ] ~~**Efficiency optimization**~~ (No significant efficiency gains and increased risk of vram overflow.)
