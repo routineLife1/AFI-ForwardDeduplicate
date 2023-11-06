@@ -3,15 +3,15 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 
 ![ezgif com-video-to-gif](https://github.com/hyw-dev/AFI-ForwardDeduplicate/assets/68835291/6f03dfd8-99f4-48ad-871e-91cbd704c1e5)
 
-# 👀Demos Videos
+## 👀Demos Videos
 ### [bilibili](https://www.bilibili.com/video/BV1py4y1A7qj)
 
-# 🔧Dependencies
+## 🔧Dependencies
 - ffmpeg
 - same as [GMFSS](https://github.com/98mxr/GMFSS_Fortuna)
 - download the [weights](https://drive.google.com/file/d/157M4i1B9hjWs1K2AZVArSulkM9qV2sdH/view?usp=sharing) and unzip it, put them to ./weights/
 
-# ⚡Usage 
+## ⚡Usage 
 - normalize the source video to 24000/1001 fps by following command using ffmpeg
   ```bash
   ffmpeg -i INPUT -crf 16 -r 24000/1001 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy OUTPUT
@@ -45,14 +45,14 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 - [ ] ~~**Attempt to accurately determine transition even in the queue_input**~~ (The implementation code is too complex, and it's effect is not obvious to improve)
 - [x] **Improve the smoothness By reducing transition frames to one frame and allocate them to the end of the scene**
 
-# limitations and expectations
+## limitations and expectations
 > 1. It is temporarily impossible to dynamically adjust the "n_forward" parameter through auto detect the max consistent deduplication counts.
 > If it can be supported, we can get the smoothest result in one step, and it will definitely surpass manual deduplication.
 >
 > 2. the "n_forward" parameter acts like the number of times the algorithm performs TTA (Test Time Augmentation) operations.
 > Performing too many TTA operations may lead to blurriness.
 
-# Projects that use AFI-ForwardDeduplicate
+## Projects that use AFI-ForwardDeduplicate
 [SVFI(commercial software)](https://store.steampowered.com/app/1692080/SVFI/)
 
 ## Reference
