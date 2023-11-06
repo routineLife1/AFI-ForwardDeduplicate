@@ -16,9 +16,10 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 - [x] **Improve the smoothness By reducing transition frames to one frame and allocate them to the end of the scene**
 
 # limitations and expectations
-> It is temporarily impossible to dynamically adjust the "n_forward" parameter through animation rhythm.
-> If it can be supported, the effect will be further improved, and it will definitely surpass manual deduplication.
-> The reason for not directly setting the maximum possible number of beats is because the "n_forward" parameter acts like the number of times the algorithm performs TTA (Test Time Augmentation) operations.
+> 1. It is temporarily impossible to dynamically adjust the "n_forward" parameter through MAX animation rhythm.
+> If it can be supported, we can get the smoothest result in one step, and it will definitely surpass manual deduplication.
+>
+> 2. the "n_forward" parameter acts like the number of times the algorithm performs TTA (Test Time Augmentation) operations.
 > Performing too many TTA operations may lead to blurriness.
 
 ## Reference
