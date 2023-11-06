@@ -2,6 +2,7 @@ import os
 import cv2
 import torch
 from tqdm import tqdm
+import logging
 import warnings
 import _thread
 import time
@@ -11,19 +12,19 @@ from models.model_pg104.RIFE import Model
 from IFNet_HDv3 import IFNet
 from Utils_scdet.scdet import SvfiTransitionDetection
 
-warnings.warn(
-    "一般情况下最后得到的总帧数为frames * times帧左右, 请在程序结束后检查总帧数")
+logging.warning("一般情况下最后得到的总帧数为frames * times帧左右, 请在程序结束后检查总帧数")
 warnings.filterwarnings("ignore")
 torch.set_grad_enabled(False)
 
 model_type = 'gmfss'  # gmfss / rife
 n_forward = 2  # 解决一拍N及以下问题, 则输入值N-1, 最小为1 (程序执行结束后会吃掉开头的N帧)
 times = 5  # 补帧倍数 >= 2
-disable_scdet = True  # 禁用转场识别
+enable_scdet = True  # 启用转场识别
 scdet_threshold = 14  # 转场识别阈值
+shrink_transition_frames = True  # 转场过渡帧缩减为一帧
 
-video = r''  # 输入视频
-save = r''  # 保存输出图片序列的路径
+video = r'E:\Video\save_04\Kono Subarashii Sekai ni Bakuen wo! OPv2.mkv'  # 输入视频
+save = r'E:\Work\VFI\Algorithm\GMFwSS\output'  # 保存输出图片序列的路径
 scale = 1.0  # 光流缩放尺度
 global_size = (960, 576)  # 全局图像尺寸(自行pad)
 export_size = (960, 540)
@@ -37,7 +38,7 @@ if torch.cuda.is_available():
 scene_detection = SvfiTransitionDetection(save, 4,
                                           scdet_threshold=scdet_threshold,
                                           pure_scene_threshold=10,
-                                          no_scdet=disable_scdet,
+                                          no_scdet=not enable_scdet,
                                           use_fixed_scdet=False,
                                           fixed_max_scdet=50,
                                           scdet_output=False)
@@ -151,9 +152,9 @@ def gen_ts_frame(x, y, _scale, ts):
     _reuse_things = model.reuse(x, y, _scale) if model_type == 'gmfss' else None
     for t in ts:
         if model_type == 'rife':
-            _out = make_inf(inp0, inp1, _scale, t)
+            _out = make_inf(x, y, _scale, t)
         else:
-            _out = model.inference(inp0, inp1, _reuse_things, t, _scale)
+            _out = model.inference(x, y, _reuse_things, t, _scale)
         _outputs.append(to_numpy(_out))
     return _outputs
 
@@ -166,6 +167,10 @@ output0 = None
 # if times = 5, n_forward=2, right=4, left=4
 right_infill = (times * n_forward) // 2 - 1
 left_infill = right_infill + (times * n_forward) % 2
+
+if shrink_transition_frames:
+    right_infill += times - 1
+
 times_ts = [i / times for i in range(1, times)]
 
 while True:
@@ -206,11 +211,12 @@ while True:
     queue_input.append(get())
 
     # 读到帧尾或遇到转场
-    if (queue_input[-1] is None) or scene_detection.check_scene(queue_input[-2], queue_input[-1]):
+    # if (queue_input[-1] is None) or scene_detection.check_scene(queue_input[-2], queue_input[-1]):
+    if (queue_input[-1] is None) or gmf_check_scene(queue_input[-2], queue_input[-1]):
 
         # test
-        # if queue_input[-1] is not None:
-        #     print("find scene...")
+        if queue_input[-1] is not None:
+            print("find scene...")
         # test
 
         queue_output.append(output0)
@@ -241,7 +247,8 @@ while True:
         queue_output.append(queue_input[-2])
 
         # 补充结尾帧
-        queue_output.extend([queue_input[-2]] * (times - 1))
+        if not shrink_transition_frames:
+            queue_output.extend([queue_input[-2]] * (times - 1))
 
         for out in queue_output:
             put(out)
