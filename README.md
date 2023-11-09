@@ -59,5 +59,9 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 ## Projects that use AFI-ForwardDeduplicate
 [SVFI(commercial software)](https://store.steampowered.com/app/1692080/SVFI/)
 
+## 🤗 Acknowledgement
+
+Thanks for [Q8sh2ing](https://github.com/Q8sh2ing) implement the Online Colab Demo.
+
 ## Reference
 [SpatiotemporalResampling](https://github.com/hyw-dev/SpatiotemporalResampling) [GMFSS](https://github.com/98mxr/GMFSS_Fortuna) [Practical-RIFE](https://github.com/hzwer/Practical-RIFE)
