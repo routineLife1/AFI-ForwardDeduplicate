@@ -46,7 +46,7 @@ save = args.output_dir  # output img dir
 scale = args.scale  # flow scale
 
 assert model_type in ['gmfss', 'rife'], f"not implement the model {model_type}"
-assert n_forward > 0, "the parameter n_forward must larger then zero"
+# assert n_forward > 0, "the parameter n_forward must larger then zero"
 assert times >= 2, "at least interpolate two times"
 
 if not os.path.exists(video):
@@ -135,13 +135,17 @@ def clear_write_buffer(w_buffer):
 
 
 video_capture = cv2.VideoCapture(video)
-total_frames_count = video_capture.get(7)
+total_frames_count = video_capture.get(cv2.CAP_PROP_FRAME_COUNT)
+ori_fps = video_capture.get(cv2.CAP_PROP_FPS)
 width, height = map(video_capture.get, [cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT])
 read_buffer = Queue(maxsize=100)
 write_buffer = Queue(maxsize=-1)
 _thread.start_new_thread(build_read_buffer, (read_buffer, video_capture))
 _thread.start_new_thread(clear_write_buffer, (write_buffer,))
 pbar = tqdm(total=total_frames_count)
+
+if n_forward == 0:
+    n_forward = math.ceil(ori_fps / 24000 * 1001) * 2
 
 width, height = map(int, [width, height])
 export_size = (int(width), int(height))
