@@ -38,7 +38,7 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 
   python interpolate_video_forward.py -i E:/MyVideo/01.mkv -o E:/frame_seq_output -nf 0 -t 2 -m gmfss -s True -st 14 -stf True -scale 1.0
 
-  ffmpeg -r 47.952 -i E:/frame_seq_output/%09d.png -i E:/MyVideo/01.mkv -map 0:v -map 1:a -crf 16 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy E:/final_output/01.mkv
+  ffmpeg -r 24000/1001*2 -i E:/frame_seq_output/%09d.png -i E:/MyVideo/01.mkv -map 0:v -map 1:a -crf 16 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy E:/final_output/01.mkv
   ```
   
 
