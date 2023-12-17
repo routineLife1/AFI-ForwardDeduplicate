@@ -15,13 +15,13 @@ Efficient Deduplicate for Anime Video Frame Interpolation
 - see issue [#2](https://github.com/hyw-dev/AFI-ForwardDeduplicate/issues/2) to solve ImportError
  
 ## ⚡Usage 
-- normalize the source video to 24000/1001 fps by following command using ffmpeg **(If the INPUT video framerate is around 23.976, not need to perform this step.)**
+- normalize the source video to 24000/1001 fps by following command using ffmpeg **(If the INPUT video framerate is around 23.976, skip this step.)**
   ```bash
   ffmpeg -i INPUT -crf 16 -r 24000/1001 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy OUTPUT
   ```
-- open the video and check out it's max consistent deduplication counts, (3 -> on Three, 2 -> on Two, 0 -> AUTO) **(If the INPUT video framerate is around 23.976,can skip this step.)**
+- open the video and check out it's max consistent deduplication counts, (3 -> on Three, 2 -> on Two, 0 -> AUTO) **(If the INPUT video framerate is around 23.976, skip this step.)**
 - run the follwing command to finish interpolation
-  (N_FORWARD = max_consistent_deduplication_counts - 1) **(Under most circumstances, -nf 2 or 0 can be used)**
+  (N_FORWARD = max_consistent_deduplication_counts - 1) **(Under the most circumstances, -nf 0 can automatically determine an appropriate n_forward value)**
   ```bash
   python interpolate_video_forward.py -i [VIDEO] -o [OUTPUTDIR] -nf [N_FORWARD] -t [TIMES] -m [MODEL_TYPE] -s [ENABLE_SCDET] -st 14 -stf True -scale [SCALE]
   ```
@@ -36,7 +36,7 @@ Efficient Deduplicate for Anime Video Frame Interpolation
   ```bash
   ffmpeg -i E:/Myvideo/01_src.mkv -crf 16 -r 24000/1001 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy E:/Myvideo/01.mkv
 
-  python interpolate_video_forward.py -i E:/MyVideo/01.mkv -o E:/frame_seq_output -nf 2 -t 2 -m gmfss -s True -st 14 -stf True -scale 1.0
+  python interpolate_video_forward.py -i E:/MyVideo/01.mkv -o E:/frame_seq_output -nf 0 -t 2 -m gmfss -s True -st 14 -stf True -scale 1.0
 
   ffmpeg -r 47.952 -i E:/frame_seq_output/%09d.png -i E:/MyVideo/01.mkv -map 0:v -map 1:a -crf 16 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy E:/final_output/01.mkv
   ```
