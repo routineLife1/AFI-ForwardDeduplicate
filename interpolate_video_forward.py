@@ -147,7 +147,6 @@ pbar = tqdm(total=total_frames_count)
 if n_forward == 0:
     n_forward = math.ceil(ori_fps / 24000 * 1001) * 2
 
-width, height = map(int, [width, height])
 export_size = (int(width), int(height))
 pad_size = (64 / scale)
 global_size = (int(math.ceil(width / pad_size) * pad_size), int(math.ceil(height / pad_size) * pad_size))
