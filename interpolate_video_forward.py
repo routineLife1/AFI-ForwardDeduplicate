@@ -131,7 +131,7 @@ def clear_write_buffer(w_buffer):
             break
         num = item[0]
         content = item[1]
-        cv2.imwrite(os.path.join(save, "{:0>9d}.png".format(num)), cv2.resize(content, global_size))
+        cv2.imwrite(os.path.join(save, "{:0>9d}.png".format(num)), content)
 
 
 video_capture = cv2.VideoCapture(video)
