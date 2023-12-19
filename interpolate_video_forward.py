@@ -185,7 +185,8 @@ def decrase_inference(_inputs: list, layers=0, counter=0):
 
 # Modified from https://github.com/megvii-research/ECCV2022-RIFE/blob/main/inference_video.py
 def correct_inputs(_inputs, n):
-            _save_dict = {}
+    def tmp_decrease_inference(_inputs: list, layers=0, counter=0):
+        _save_dict = {}
         while len(_inputs) != 1:
             layers += 1
             tmp_queue = []
