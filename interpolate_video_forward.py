@@ -271,17 +271,21 @@ while True:
 
         for i in range(len(timestamp) - 1):
             t0, t1 = timestamp[i], timestamp[i + 1]
+          
             if t0 in require_timestamp:
                 queue_output.append(inputs[i])
                 require_timestamp.remove(t0)
-            if t1 in require_timestamp:
-                queue_output.append(inputs[i + 1])
-                require_timestamp.remove(t1)
+
             condition_middle = [rt for rt in require_timestamp if t0 < rt < t1]
             if len(condition_middle) != 0:
                 inp0, inp1 = map(to_tensor, [inputs[i], inputs[i + 1]])
                 outputs = gen_ts_frame(inp0, inp1, scale, [(t - t0) * 2 for t in condition_middle])
                 queue_output.extend(outputs)
+              
+            if t1 in require_timestamp:
+                queue_output.append(inputs[i + 1])
+                require_timestamp.remove(t1)
+              
             if len(require_timestamp) == 0:
                 break
 
@@ -305,17 +309,21 @@ while True:
           
         for i in range(len(timestamp) - 1):
             t0, t1 = timestamp[i], timestamp[i + 1]
+          
             if t0 in require_timestamp:
                 queue_output.append(inputs[i])
                 require_timestamp.remove(t0)
-            if t1 in require_timestamp:
-                queue_output.append(inputs[i + 1])
-                require_timestamp.remove(t1)
+
             condition_middle = [rt for rt in require_timestamp if t0 < rt < t1]
             if len(condition_middle) != 0:
                 inp0, inp1 = map(to_tensor, [inputs[i], inputs[i + 1]])
                 outputs = gen_ts_frame(inp0, inp1, scale, [(t - t0) * 2 for t in condition_middle])
                 queue_output.extend(outputs)
+
+            if t1 in require_timestamp:
+                queue_output.append(inputs[i + 1])
+                require_timestamp.remove(t1)
+              
             if len(require_timestamp) == 0:
                 break
 
