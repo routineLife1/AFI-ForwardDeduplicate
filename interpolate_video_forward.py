@@ -31,6 +31,8 @@ parser.add_argument('-st', '--scdet_threshold', dest='scdet_threshold', type=int
                     help='scene detection threshold, same setting as SVFI')
 parser.add_argument('-stf', '--shrink_transition_frames', dest='shrink', type=bool, default=True,
                     help='shrink the copy frames in transition to improve the smoothness')
+parser.add_argument('-c', '--enable_correct_inputs', dest='correct', type=bool, default=True,
+                    help='correct scene start and scene end processing, (will reduce stuttering, but will slow down the speed, and may introduce blur at beginning and ending of the scenes)')
 parser.add_argument('-scale', '--scale', dest='scale', type=float, default=1.0,
                     help='flow scale, generally use 1.0 with 1080P and 0.5 with 4K resolution')
 args = parser.parse_args()
@@ -41,6 +43,7 @@ times = args.times  # interpolation ratio >= 2
 enable_scdet = args.enable_scdet  # enable scene change detection
 scdet_threshold = args.scdet_threshold  # scene change detection threshold
 shrink_transition_frames = args.shrink  # shrink the frames of transition
+enable_correct_inputs = args.correct  # correct scene start and scene end processing
 video = args.video  # input video path
 save = args.output_dir  # output img dir
 scale = args.scale  # flow scale
@@ -180,6 +183,47 @@ def decrase_inference(_inputs: list, layers=0, counter=0):
     return _inputs[0], counter
 
 
+# Modified from https://github.com/megvii-research/ECCV2022-RIFE/blob/main/inference_video.py
+def correct_inputs(_inputs, n):
+            _save_dict = {}
+        while len(_inputs) != 1:
+            layers += 1
+            tmp_queue = []
+            for i in range(len(_inputs) - 1):
+                if _save_dict.get(f'{layers}{i + 1}') is not None:
+                    _save_dict[f'{layers}{i}'] = _save_dict[
+                        f'{layers}{i + 1}']
+                    tmp_queue.append(
+                        _save_dict[f'{layers}{i}']
+                    )
+                else:
+                    inp0, inp1 = map(to_tensor, [_inputs[i], _inputs[i + 1]])
+                    tmp_queue.append(
+                        to_numpy(make_inf(inp0, inp1, scale, 0.5))
+                    )
+                    _save_dict[f'{layers}{i}'] = tmp_queue[-1]
+                    counter += 1
+            _inputs = tmp_queue
+        return _inputs[0], _save_dict, counter
+
+    global model
+    middle, save_dict, _ = tmp_decrease_inference(_inputs)
+    if n == 1:
+        return [middle]
+
+    depth = int(max(save_dict.keys())[0])
+
+    first_half_list = [_inputs[0]] + [save_dict[f'{layer}0'] for layer in range(1, depth, 1)]
+    second_half_list = [save_dict[f'{layer}{depth - layer}'] for layer in range(depth, 0, -1)] + [_inputs[-1]]
+
+    first_half = correct_inputs(first_half_list, n=n // 2)
+    second_half = correct_inputs(second_half_list, n=n // 2)
+    if n % 2:
+        return [*first_half, middle, *second_half]
+    else:
+        return [*first_half, *second_half]
+
+
 def gen_ts_frame(x, y, _scale, ts):
     _outputs = list()
     _reuse_things = model.reuse(x, y, _scale) if model_type == 'gmfss' else None
@@ -213,7 +257,12 @@ while True:
 
         queue_output.append(queue_input[0])
         inputs = [queue_input[0]]
-        inputs.extend(saved_result[f'{layer}0'] for layer in range(1, n_forward + 1))
+      
+        depth = int(max(saved_result.keys())[0])
+        inputs.extend(saved_result[f'{layer}0'] for layer in range(1, depth + 1))
+
+        if enable_correct_inputs and len(inputs) > 2:
+            inputs = [inputs[0]] + correct_inputs(inputs, len(inputs) - 2) + [inputs[-1]]
 
         timestamp = [0.5 * layer for layer in range(0, n_forward + 1)]
         t_step = timestamp[-1] / (left_infill + 1)
@@ -241,14 +290,18 @@ while True:
     if (queue_input[-1] is None) or scene_detection.check_scene(queue_input[-2], queue_input[-1]):
 
         queue_output.append(output0)
-        inputs = [output0]
-        inputs.extend(saved_result[f'{layer}{n_forward - layer}'] for layer in range(n_forward - 1, 0, -1))
+      
+        depth = int(max(saved_result.keys())[0])
+        inputs = list(saved_result[f'{layer}{depth - layer}'] for layer in range(depth, 0, -1))
         inputs.append(queue_input[-2])
 
         timestamp = [0.5 * layer for layer in range(0, n_forward + 1)]
         t_step = timestamp[-1] / (right_infill + 1)
         require_timestamp = [t_step * i for i in range(1, right_infill + 1)]
-
+      
+        if enable_correct_inputs and len(inputs) > 2:
+            inputs = [inputs[0]] + correct_inputs(inputs, len(inputs) - 2) + [inputs[-1]]
+          
         for i in range(len(timestamp) - 1):
             t0, t1 = timestamp[i], timestamp[i + 1]
             if t0 in require_timestamp:
