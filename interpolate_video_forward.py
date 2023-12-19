@@ -161,7 +161,7 @@ def make_inf(x, y, _scale, timestep):
     return model.inference(x, y, model.reuse(x, y, _scale), timestep)
 
 
-def decrase_inference(_inputs: list, layers=0, counter=0):
+def decrease_inference(_inputs: list, layers=0, counter=0):
     while len(_inputs) != 1:
         layers += 1
         tmp_queue = []
@@ -254,7 +254,7 @@ while True:
     if output0 is None:
         queue_input.extend(get() for _ in range(n_forward))
 
-        output0, count = decrase_inference(queue_input.copy())
+        output0, count = decrease_inference(queue_input.copy())
 
         queue_output.append(queue_input[0])
         inputs = [queue_input[0]]
@@ -337,7 +337,7 @@ while True:
         pbar.update(1)
         continue
 
-    output1, count = decrase_inference(queue_input.copy())
+    output1, count = decrease_inference(queue_input.copy())
 
     queue_output.append(output0)
     inp0, inp1 = map(to_tensor, [output0, output1])
