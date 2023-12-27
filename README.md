@@ -1,9 +1,11 @@
 # 📖AFI-ForwardDeduplicate
 
-Online Colab demo for AFI-ForwardDeduplicate: [[Colab]](https://github.com/Q8sh2ing/AFI-ForwardDeduplicate-Colab/blob/main/forward_dedup_Colab.ipynb)
+### Efficient Deduplicate for Anime Video Frame Interpolation
+> When making frame interpolation to anime materials, methods such as accelerating and then slowing down, or identifying and removing duplicate frames are usually used to remove duplicates and interpolation. These classic methods have many potential problems, such as losing background information, and being unable to correctly handle multiple characters with different beats. Therefore, they cannot perform well in many scenes. With the advancement of AI video frame interpolation technology(VFI), it is gradually allowed us to use VFI technology to repeatedly replace the original frames to achieve more extreme animation VFI effects. This project provides a gmfss based technique for processing duplicate frames in anime. This method has a low implementation cost, does not require recognition and judgment of the image, nor does it require additional construction of neural networks. It theoretically solves the problem of lag caused by duplicated  frames in anime.
 
-Efficient Deduplicate for Anime Video Frame Interpolation
 ![ezgif com-video-to-gif](https://github.com/hyw-dev/AFI-ForwardDeduplicate/assets/68835291/6f03dfd8-99f4-48ad-871e-91cbd704c1e5)
+
+Online Colab demo for AFI-ForwardDeduplicate: [[Colab]](https://github.com/Q8sh2ing/AFI-ForwardDeduplicate-Colab/blob/main/forward_dedup_Colab.ipynb)
 
 ## 👀Demos Videos
 ### [bilibili](https://www.bilibili.com/video/BV1py4y1A7qj)
