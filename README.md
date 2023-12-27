@@ -1,7 +1,9 @@
 # 📖AFI-ForwardDeduplicate
 
 ### Efficient Deduplicate for Anime Video Frame Interpolation
-> When making frame interpolation to anime materials, methods such as accelerating and then slowing down, or identifying and removing duplicate frames are usually used to remove duplicates and interpolation. These classic methods have many potential problems, such as losing background information, and being unable to correctly handle multiple characters with different beats. Therefore, they cannot perform well in many scenes. With the advancement of AI video frame interpolation technology(VFI), it is gradually allowed us to use VFI technology to repeatedly update the original frames to achieve more extreme animation VFI effects. This project provides a VFI based technique for processing duplicate frames in anime. The method used in this has a low implementation cost, does not require recognition and judgment of the frame sequence, nor does it require additional neural networks. It theoretically solves the problem of lag caused by duplicated frames in anime.
+> When performing frame interpolation on anime footage, conventional de-duplicate approach such as locating duplicate frames and removal, time remapping, have many drawbacks, like losing textures of background, failure to correctly handle multiple characters drawn in different cadence in a single scene. Therefore, they cannot be applied in production effectively. 
+However, with the advancement of video frame interpolation technology based on AI, it is proved feasible to repeatedly update the original frames to obtain high quality interpolated output of anime. 
+This project proposes a novel anime deduplication method based on a decent VFI algorithm of GMFSS. It does not require additional procedure of processing the frame sequence or deep neural networks, and produces smooth, high quality output by removing duplicate frames in anime adequately.
 
 ![ezgif com-video-to-gif](https://github.com/hyw-dev/AFI-ForwardDeduplicate/assets/68835291/6f03dfd8-99f4-48ad-871e-91cbd704c1e5)
 
