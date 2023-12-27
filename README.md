@@ -1,7 +1,7 @@
 # 📖AFI-ForwardDeduplicate
 
 ### Efficient Deduplicate for Anime Video Frame Interpolation
-> When making frame interpolation to anime materials, methods such as accelerating and then slowing down, or identifying and removing duplicate frames are usually used to remove duplicates and interpolation. These classic methods have many potential problems, such as losing background information, and being unable to correctly handle multiple characters with different beats. Therefore, they cannot perform well in many scenes. With the advancement of AI video frame interpolation technology(VFI), it is gradually allowed us to use VFI technology to repeatedly replace the original frames to achieve more extreme animation VFI effects. This project provides a VFI based technique for processing duplicate frames in anime. The method used in this has a low implementation cost, does not require recognition and judgment of the frame sequence, nor does it require additional neural networks. It theoretically solves the problem of lag caused by duplicated  frames in anime.
+> When making frame interpolation to anime materials, methods such as accelerating and then slowing down, or identifying and removing duplicate frames are usually used to remove duplicates and interpolation. These classic methods have many potential problems, such as losing background information, and being unable to correctly handle multiple characters with different beats. Therefore, they cannot perform well in many scenes. With the advancement of AI video frame interpolation technology(VFI), it is gradually allowed us to use VFI technology to repeatedly update the original frames to achieve more extreme animation VFI effects. This project provides a VFI based technique for processing duplicate frames in anime. The method used in this has a low implementation cost, does not require recognition and judgment of the frame sequence, nor does it require additional neural networks. It theoretically solves the problem of lag caused by duplicated frames in anime.
 
 ![ezgif com-video-to-gif](https://github.com/hyw-dev/AFI-ForwardDeduplicate/assets/68835291/6f03dfd8-99f4-48ad-871e-91cbd704c1e5)
 
@@ -51,10 +51,11 @@ Online Colab demo for AFI-ForwardDeduplicate: [[Colab]](https://github.com/Q8sh2
 - [ ] **Explain why this method is effective and write a guidence on how to support other vfi algorithms**
 - [ ] **Implement any framerate support for ForwardDeduplicate (smooth interpolation method)**
 
-## limitations and expectations
+## limitations
 > The "n_forward" parameter acts like the number of times the algorithm performs TTA (Test Time Augmentation) operations.
-> Performing too many TTA operations may further improve smoothness but lead to blurriness.
+> Performing too many TTA operations may further improve smoothness and interpolation performance but lead to blurriness.
 > 
+> This method will change the animation rhythm to a certain extent
 
 ## Projects that use AFI-ForwardDeduplicate
 [SVFI(commercial software)](https://store.steampowered.com/app/1692080/SVFI/)
