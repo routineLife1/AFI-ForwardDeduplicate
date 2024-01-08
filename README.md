@@ -54,7 +54,7 @@ Online Colab demo for AFI-ForwardDeduplicate: [[Colab]](https://github.com/Q8sh2
 - [ ] **Implement any framerate support for ForwardDeduplicate (smooth interpolation method)**
 
 ## limitations
-> The "n_forward" parameter acts like the number of times the algorithm performs TTA (Test Time Augmentation) operations.
+> The "n_forward" parameter acts like the number of times the algorithm performs Spatiotemporal TTA (Spatiotemporal Test Time Augmentation) operations.
 > Performing too many TTA operations may further improve smoothness and interpolation performance but lead to blurriness.
 > 
 > This method will change the animation rhythm to a certain extent
