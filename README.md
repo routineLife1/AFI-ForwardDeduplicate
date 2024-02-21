@@ -51,7 +51,6 @@ Online Colab demo for AFI-ForwardDeduplicate: [[Colab]](https://github.com/Q8sh2
 
 ## todo list
 - [ ] ~~**Efficiency optimization**~~ (No significant efficiency gains and increased risk of vram overflow.)
-- [ ] ~~**Attempt to implement arbitrary frame rates support**~~ (It is very inefficient to process all the frames in a scene at once, or to accurately calculate the total number of frames variety of videos.)
 - [ ] ~~**Attempt to accurately determine transition even in the queue_input**~~ (The implementation code is too complex, and it's effect is not obvious to improve)
 - [x] **Improve the smoothness By reducing transition frames to one frame and allocate them to the end of the scene**
 - [ ] **Explain why this method is effective and write a guidence on how to support other vfi algorithms**
