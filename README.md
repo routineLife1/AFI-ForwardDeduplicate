@@ -43,7 +43,7 @@ Online Colab demo for AFI-ForwardDeduplicate: [[Colab]](https://github.com/Q8sh2
   ```bash
   ffmpeg -i E:/Myvideo/01_src.mkv -crf 16 -r 24000/1001 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy E:/Myvideo/01.mkv
 
-  python interpolate_video_forward_anyfps.py -i E:/MyVideo/01.mkv -o E:/frame_seq_output -nf 0 -fps 60 -m gmfss -s True -st 12 -stf True -c True -scale 1.0
+  python interpolate_video_forward_anyfps.py -i E:/MyVideo/01.mkv -o E:/frame_seq_output -nf 2 -fps 60 -m gmfss -s True -st 12 -stf True -c True -scale 1.0
 
   ffmpeg -r 60 -i E:/frame_seq_output/%09d.png -i E:/MyVideo/01.mkv -map 0:v -map 1:a -crf 16 -preset slow -c:v libx265 -x265-params profile=main10 -c:a copy E:/final_output/01.mkv
   ```
