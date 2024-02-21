@@ -55,7 +55,7 @@ Online Colab demo for AFI-ForwardDeduplicate: [[Colab]](https://github.com/Q8sh2
 - [ ] ~~**Attempt to accurately determine transition even in the queue_input**~~ (The implementation code is too complex, and it's effect is not obvious to improve)
 - [x] **Improve the smoothness By reducing transition frames to one frame and allocate them to the end of the scene**
 - [ ] **Explain why this method is effective and write a guidence on how to support other vfi algorithms**
-- [ ] **Implement any framerate support for ForwardDeduplicate (smooth interpolation method)**
+- [x] **Implement any framerate support for ForwardDeduplicate (smooth interpolation method)**
 
 ## limitations
 > The "n_forward" parameter acts like the number of times the algorithm performs Spatiotemporal TTA (Spatiotemporal Test Time Augmentation) operations.
