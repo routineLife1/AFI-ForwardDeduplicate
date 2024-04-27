@@ -9,7 +9,6 @@ import time
 import math
 import numpy as np
 from queue import Queue
-from models.model_pg104.RIFE import Model
 from models.IFNet_HDv3 import IFNet
 from Utils_scdet.scdet import SvfiTransitionDetection
 
@@ -25,16 +24,20 @@ parser.add_argument('-nf', '--n_forward', dest='n_forward', type=int, default=2,
 parser.add_argument('-t', '--times', dest='times', type=int, default=2, help='the interpolation ratio')
 parser.add_argument('-m', '--model_type', dest='model_type', type=str, default='gmfss',
                     help='the interpolation model to use (gmfss/rife)')
-parser.add_argument('-s', '--enable_scdet', dest='enable_scdet', type=bool, default=False,
+parser.add_argument('-s', '--enable_scdet', dest='enable_scdet', action='store_true', default=False,
                     help='enable scene change detection')
 parser.add_argument('-st', '--scdet_threshold', dest='scdet_threshold', type=int, default=14,
                     help='scene detection threshold, same setting as SVFI')
-parser.add_argument('-stf', '--shrink_transition_frames', dest='shrink', type=bool, default=True,
+parser.add_argument('-stf', '--shrink_transition_frames', dest='shrink', action='store_true', default=True,
                     help='shrink the copy frames in transition to improve the smoothness')
-parser.add_argument('-c', '--enable_correct_inputs', dest='correct', type=bool, default=True,
+parser.add_argument('-c', '--enable_correct_inputs', dest='correct', action='store_true', default=True,
                     help='correct scene start and scene end processing, (will reduce stuttering, but will slow down the speed, and may introduce blur at beginning and ending of the scenes)')
 parser.add_argument('-scale', '--scale', dest='scale', type=float, default=1.0,
                     help='flow scale, generally use 1.0 with 1080P and 0.5 with 4K resolution')
+parser.add_argument('-nc', '--no_cupy', dest='disable_cupy', action='store_true', default=False,
+                    help='can avoid cupy dependency but the computational speed will drop sharply,effect will drop slightly')
+parser.add_argument('-half', '--half_precision', dest='half', action='store_true', default=True,
+                    help='use half precision(Save VRAM and accelerate on some nv cards, may slightly affect the effect)')
 args = parser.parse_args()
 
 model_type = args.model_type
@@ -47,6 +50,8 @@ enable_correct_inputs = args.correct  # correct scene start and scene end proces
 video = args.video  # input video path
 save = args.output_dir  # output img dir
 scale = args.scale  # flow scale
+disable_cupy = args.disable_cupy
+half = args.half
 
 assert model_type in ['gmfss', 'rife'], f"not implement the model {model_type}"
 # assert n_forward > 0, "the parameter n_forward must larger then zero"
@@ -71,7 +76,7 @@ scene_detection = SvfiTransitionDetection(save, 4,
                                           pure_scene_threshold=10,
                                           no_scdet=not enable_scdet,
                                           use_fixed_scdet=False,
-                                          fixed_max_scdet=50,
+                                          fixed_max_scdet=80,
                                           scdet_output=False)
 
 
@@ -87,18 +92,26 @@ if model_type == 'rife':
     model = IFNet()
     model.load_state_dict(convert(torch.load('weights/rife48.pkl')))
 else:
+    if disable_cupy:
+        from models.model_pg104.GMFSS_no_cupy import Model
+    else:
+        from models.model_pg104.GMFSS import Model
     model = Model()
     model.load_model('weights/train_log_pg104', -1)
 model.eval()
 if model_type == 'gmfss':
     model.device()
 else:
-    model.to(device).half()
+    model.to(device)
+if half:
+    model.half()
 print("Loaded model")
 
 
 def to_tensor(img):
-    return torch.from_numpy(img.transpose(2, 0, 1)).unsqueeze(0).half().cuda() / 255.
+    if half:
+        return torch.from_numpy(img.transpose(2, 0, 1)).unsqueeze(0).half().cuda() / 255.
+    return torch.from_numpy(img.transpose(2, 0, 1)).unsqueeze(0).cuda() / 255.
 
 
 def to_numpy(tensor):
