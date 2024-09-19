@@ -10,7 +10,7 @@ import math
 import numpy as np
 from queue import Queue
 from models.IFNet_HDv3 import IFNet
-from Utils_scdet.scdet import SvfiTransitionDetection
+from scdet import SvfiTransitionDetection
 
 warnings.filterwarnings("ignore")
 
